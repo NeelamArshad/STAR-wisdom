@@ -7,6 +7,7 @@ execute:
 
 ```{r}
 #| message: false
+#| warning: false
 
 library(tidyverse)      
 library(gt)             
@@ -37,10 +38,7 @@ The Tennessee STAR dataset comes from a large-scale, multi-year educational expe
 
 ### Scenarios
 
-1) Imagine that you are an elementary school principal in Chicago. You want to predict student performance. Fortunately, you have data today for your current students like the data available in the STAR project.
-
 2) Imagine you work for the Texas Department of Education. You want to understand student performance in small classes, relative to big classes, in Dallas. In Texas, there is data available like the data in the STAR project.
-
 
 ### Data
 
@@ -50,17 +48,82 @@ The Tennessee STAR dataset comes from a large-scale, multi-year educational expe
 x
 ```
 
+```{r}
+#| message: false
+summary(x) # general overview.
+table(x$kind)
+table(x$race)
+
+x %>%
+  group_by(kind) %>%
+  summarize(mean_math = mean(g4math, na.rm = TRUE))
+```
+
+```{r}
+x %>%
+  drop_na(g4math) %>%
+  ggplot(aes(x = g4math)) +
+  geom_histogram(binwidth = 10, fill = "steelblue", color = "white") +
+  labs(title = "Histogram of 4th Grade Math Scores",
+       x = "G4 Math Score",
+       y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+x %>%
+  drop_na(g4math) %>%
+  ggplot(aes(x = g4math)) +
+  geom_density(fill = "lightgreen", alpha = 0.6) +
+  labs(title = "Density Plot of 4th Grade Math Scores",
+       x = "G4 Math Score",
+       y = "Density") +
+  theme_minimal()
+```
+
+
 ### Preceptor Table
 
 What sorts of questions are we trying to answer?
 
 In order to build the Preceptor Table, we need to answer some questions: Is the model causal or predictive? What are units? What are the outcomes? What are the covariates? What are the treatments?
 
+Question: Does small number of students affect the performance than the large number of students in a Tennessee class?
+This is a causal model.
+Units are indvidual students. Outcomes are math scores. Covariates is race. Treatment is assignment to small class vs. large class.
+
+
+```{r}
+# Load libraries
+library(dplyr)
+library(DT)
+
+preceptor_long <- x %>%
+  mutate(
+    ID = row_number(),
+    Treatment = if_else(kind == "small", "Small", "Big")
+  ) %>%
+  select(ID, Outcome = g4math, Covariate = race, Treatment)
+datatable(preceptor_long,
+          caption = "Preceptor Table: Student-Level Outcomes, Covariates, and Treatment Group",
+          options = list(pageLength = 10))
+```
 
 ### Population Table 
 
 Describe in words the Population Table. For each of the four key assumption of Justice --- validity, stability, representativeness, and unconfoundedness --- provide a counter-example, if relevant. Describe the mathematical Structure of the model.
 
+The population table is unit/time combination.
+
+### Justice
+
+Validity: Might not hold if the g4math test as four years ago is not the same test as today.
+
+Stability: Might not be true if the relationship between the class size and math score from four years ago is not the same relationship as today.
+
+Representativeness: Might not hold if the students are from different demographics.
+
+Unconfoundedness: Might not hold if students assignment to small class vs. large class is not random. 
 
 ## More Information
 
